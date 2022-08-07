@@ -98,16 +98,6 @@ local buf_draw = function(opts)
     vim.api.nvim_set_option(k, v)
   end
 
-  local reset_win = function()
-    vim.cmd('enew')
-    for k, v in pairs(global_restores) do
-      vim.api.nvim_set_option(k, v)
-    end
-    for k, v in pairs(winopt_restores) do
-      vim.api.nvim_win_set_option(win, k, v)
-    end
-  end
-
   local splashBuf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_option(splashBuf, 'modified', false)
   vim.api.nvim_buf_set_option(splashBuf, 'bufhidden', 'wipe')
@@ -118,6 +108,17 @@ local buf_draw = function(opts)
 
   vim.api.nvim_buf_set_lines(splashBuf, 0, -1, false, paddedText)
   vim.api.nvim_win_set_buf(win, splashBuf)
+
+  local reset_win = function()
+    vim.api.nvim_buf_delete(splashBuf, { force = false, unload = false })
+    vim.cmd('enew')
+    for k, v in pairs(global_restores) do
+      vim.api.nvim_set_option(k, v)
+    end
+    for k, v in pairs(winopt_restores) do
+      vim.api.nvim_win_set_option(win, k, v)
+    end
+  end
 
   vim.api.nvim_create_autocmd('InsertEnter,WinEnter', {
     pattern = '<buffer>',
