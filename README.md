@@ -41,7 +41,7 @@ require 'splash'.setup {
 
 ### Advanced Configuration
 
-```
+```lua
 require 'splash'.setup {
   -- List of lines splash will display. These lines should be the same length,
   -- if not: set text_width to the length of the longest line.
