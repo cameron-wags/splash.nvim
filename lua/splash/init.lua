@@ -1,3 +1,7 @@
+local M = {
+  _open = false,
+}
+
 local defaults = {
   -- List of lines splash will display. These lines should be the same length,
   -- if not: set text_width to the length of the longest line.
@@ -88,17 +92,21 @@ local buf_draw = function(opts)
 
   local win = vim.api.nvim_get_current_win()
   local winopt_restores = {}
-  for k, v in pairs(opts.nvim_opt_overrides.win_opts) do
-    winopt_restores[k] = vim.api.nvim_win_get_option(win, k)
-    vim.api.nvim_win_set_option(win, k, v)
+  if opts.nvim_opt_overrides and opts.nvim_opt_overrides.win_opts then
+    for k, v in pairs(opts.nvim_opt_overrides.win_opts) do
+      winopt_restores[k] = vim.api.nvim_win_get_option(win, k)
+      vim.api.nvim_win_set_option(win, k, v)
+    end
   end
   local global_restores = {}
-  for k, v in pairs(opts.nvim_opt_overrides.global_opts) do
-    global_restores[k] = vim.api.nvim_get_option(k)
-    vim.api.nvim_set_option(k, v)
+  if opts.nvim_opt_overrides and opts.nvim_opt_overrides.global_opts then
+    for k, v in pairs(opts.nvim_opt_overrides.global_opts) do
+      global_restores[k] = vim.api.nvim_get_option(k)
+      vim.api.nvim_set_option(k, v)
+    end
   end
 
-  local splashBuf = vim.api.nvim_create_buf(false, true)
+  local splashBuf = vim.api.nvim_get_current_buf()
   vim.api.nvim_buf_set_option(splashBuf, 'modified', false)
   vim.api.nvim_buf_set_option(splashBuf, 'bufhidden', 'wipe')
   vim.api.nvim_buf_set_option(splashBuf, 'buflisted', false)
@@ -108,26 +116,29 @@ local buf_draw = function(opts)
 
   vim.api.nvim_buf_set_lines(splashBuf, 0, -1, false, paddedText)
   vim.api.nvim_win_set_buf(win, splashBuf)
+  M._open = true
 
-  local reset_win = function()
-    vim.api.nvim_buf_delete(splashBuf, { force = false, unload = false })
-    vim.cmd('enew')
-    for k, v in pairs(global_restores) do
-      vim.api.nvim_set_option(k, v)
-    end
-    for k, v in pairs(winopt_restores) do
-      vim.api.nvim_win_set_option(win, k, v)
+  local splash_exit = function(arg)
+    if M._open then
+      M._open = false
+      if arg.event == 'InsertEnter' then
+        vim.api.nvim_buf_delete(splashBuf, { force = false, unload = false })
+      end
+
+      for k, v in pairs(global_restores) do
+        vim.api.nvim_set_option(k, v)
+      end
+      for k, v in pairs(winopt_restores) do
+        vim.api.nvim_win_set_option(win, k, v)
+      end
     end
   end
 
-  vim.api.nvim_create_autocmd('InsertEnter,WinEnter', {
-    pattern = '<buffer>',
-    callback = reset_win,
+  vim.api.nvim_create_autocmd({ 'InsertEnter', 'BufUnload' }, {
+    callback = splash_exit,
     once = true,
   })
 end
-
-local M = {}
 
 M.setup = function(opts)
   if opts then
