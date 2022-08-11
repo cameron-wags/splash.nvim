@@ -119,8 +119,14 @@ local buf_draw = function(opts)
   M._open = true
 
   local splash_exit = function(arg)
-    if M._open then
+    if not M._open then
+      vim.api.nvim_del_autocmd(arg.id)
+    end
+
+    if M._open and arg.buf == splashBuf then
       M._open = false
+      vim.api.nvim_del_autocmd(arg.id)
+
       if arg.event == 'InsertEnter' then
         vim.api.nvim_buf_delete(splashBuf, { force = false, unload = false })
       end
@@ -136,7 +142,6 @@ local buf_draw = function(opts)
 
   vim.api.nvim_create_autocmd({ 'InsertEnter', 'BufUnload' }, {
     callback = splash_exit,
-    once = true,
   })
 end
 
