@@ -17,11 +17,14 @@ local defaults = {
 
   -- Overrides the value of vim.api.nvim_get_option('lines') for padding
   -- calculations.
-  -- vim_height = 30
+  -- vim_height = 30,
 
   -- Overrides the value of vim.api.nvim_get_option('columns') for padding
   -- calculations.
-  -- vim_width = 80
+  -- vim_width = 80,
+
+  -- Re-centers text as the vim window changes size
+  resize_with_window = true,
 
   -- Splash will display only if this function returns true at the time
   -- splash.setup() is invoked.
@@ -44,7 +47,7 @@ local defaults = {
     -- these make splash look squeaky clean.
     global_opts = {
       -- laststatus = 0,
-      -- ruler = false
+      -- ruler = false,
     },
   },
 

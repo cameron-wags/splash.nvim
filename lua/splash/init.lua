@@ -2,26 +2,28 @@ local defaults = require('splash.config')
 
 local M = {
   _open = false,
+  _splashBuf = nil,
+  _opts = nil,
 }
 
-local buf_draw = function(opts)
-  local text = opts.text
+local pad_text = function(opts)
+  local text = {}
 
-  local width = opts.vim_width or vim.api.nvim_get_option('columns')
-  local textWidth = opts.text_width or #text[1]
+  local width = opts.vim_width or vim.api.nvim_win_get_width(0)
+  local textWidth = opts.text_width or #opts.text[1]
   if width >= textWidth then
     local padWidth = math.floor(((width - textWidth) / 2) + 0.5)
     local padstr = ''
     for _ = 1, padWidth do
       padstr = ' ' .. padstr
     end
-    for i, _ in ipairs(text) do
-      text[i] = padstr .. text[i]
+    for i, _ in ipairs(opts.text) do
+      table.insert(text, padstr .. opts.text[i])
     end
   end
 
-  local height = opts.vim_height or vim.api.nvim_get_option('lines')
-  local textHeight = opts.text_height or #text
+  local height = opts.vim_height or vim.api.nvim_win_get_height(0)
+  local textHeight = opts.text_height or #opts.text
   local padHeight = math.floor(((height - textHeight) / 2) + 0.5)
   local paddedText = {}
   for _ = 1, padHeight do
@@ -35,6 +37,20 @@ local buf_draw = function(opts)
   for _ = 1, padHeight do
     table.insert(paddedText, '')
   end
+
+  return paddedText
+end
+
+local redraw_buf = function(arg)
+  if M._open then
+    vim.api.nvim_buf_set_lines(M._splashBuf, 0, -1, false, pad_text(M._opts))
+  else
+    vim.api.nvim_del_autocmd(arg.id)
+  end
+end
+
+local splash_open = function(opts)
+  local paddedText = pad_text(opts)
 
   local win = vim.api.nvim_get_current_win()
   local winopt_restores = {}
@@ -62,6 +78,8 @@ local buf_draw = function(opts)
 
   vim.api.nvim_buf_set_lines(splashBuf, 0, -1, false, paddedText)
   vim.api.nvim_win_set_buf(win, splashBuf)
+  M._splashBuf = splashBuf
+  M._opts = opts
   M._open = true
 
   local splash_exit = function(arg)
@@ -89,6 +107,12 @@ local buf_draw = function(opts)
   vim.api.nvim_create_autocmd({ 'InsertEnter', 'BufUnload', 'StdinReadPre' }, {
     callback = splash_exit,
   })
+
+  if opts.resize_with_window then
+    vim.api.nvim_create_autocmd('VimResized', {
+      callback = redraw_buf
+    })
+  end
 end
 
 M.setup = function(opts)
@@ -98,7 +122,7 @@ M.setup = function(opts)
     end
   end
   if defaults.splash_condition() then
-    buf_draw(defaults)
+    splash_open(defaults)
   end
 end
 
